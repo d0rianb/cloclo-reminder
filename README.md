@@ -1,6 +1,6 @@
-# countdown
+# Cloclo's Reminder
 
-A new Flutter project.
+A  Flutter app for iOS & Android (but surtout Android).
 
 ## Getting Started
 

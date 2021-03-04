@@ -1,4 +1,7 @@
-import 'package:cloclo/NotificationManager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/gestures.dart';
+
 import 'package:flutter/material.dart';
 import './NotificationManager.dart';
 
@@ -11,107 +14,152 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cloclo\'s reminder',
+      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       locale: Locale.fromSubtags(languageCode: 'fr'),
       debugShowCheckedModeBanner: false,
-      home: HomePage('Reminder'),
+      home: HomePage(title: 'Reminder'),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final String title;
+
+  const HomePage({Key key, this.title}) : super(key: key);
+
+  HomeState createState() => HomeState();
+}
+
+class HomeState extends State<HomePage> {
   final NotificationManager notificationManager = new NotificationManager();
+  final NumberFormat timeFormatter = new NumberFormat('00');
+  // ignore: non_constant_identifier_names
+  String notificationTime;
+  String name;
+  String inputName;
+  SharedPreferences prefs;
 
-  HomePage(this.title);
-
-  Future<String> getScheduledNotificationTime() async {
-    var notificationScheduled = (await notificationManager.getScheduledNotifications())[0];
-    String infos = notificationScheduled.title + notificationScheduled.body + notificationScheduled.payload + notificationScheduled.id.toString();
-    print(infos);
-    return notificationScheduled?.payload;
+  Future<String> getPreferences() async {
+    prefs = await SharedPreferences.getInstance();
+    notificationTime = prefs.getString('NotificationTime');
+    if (notificationTime == null) {
+      scheduleDailyNotification(9, 0); // default at 9:00
+    }
+    return '';
   }
 
-  @override
-//  Widget build(BuildContext context) {
-//    ButtonStyle buttonTextStyle = TextButton.styleFrom(
-//      enableFeedback: true,
-//      textStyle: TextStyle(
-//        fontSize: 20,
-//      ),
-//    );
-//    return Scaffold(
-//      appBar: AppBar(title: Text(title)),
-//      body: Column(
-//        children: [
-//          Column(
-//            mainAxisAlignment: MainAxisAlignment.center,
-//            children: [
-//              Center(
-//                child: Padding(
-//                  padding: const EdgeInsets.all(32.0),
-//                  child: Column(
-//                    mainAxisAlignment: MainAxisAlignment.center,
-//                    children: [
-//                      Text(
-//                        'Cloclo prends ta pilule',
-//                        style: TextStyle(fontSize: 30),
-//                      ),
-//                      Text('Rappel tous les jours à ${notificationTime?.hour}:${notificationTime?.minute}')
-//                    ],
-//                  ),
-//                ),
-//              ),
-//              Row(
-//                mainAxisAlignment: MainAxisAlignment.center,
-//                children: [
-//                  TextButton(
-//                    child: Text('Configure'),
-//                    style: buttonTextStyle,
-//                    onPressed: () {
-//                      showTimePicker(
-//                        initialTime: TimeOfDay.now(),
-//                        context: context,
-//                      ).then((selectedTime) async {
-//                        int hour = selectedTime.hour;
-//                        int minute = selectedTime.minute;
-//                        notificationManager.showNotificationDaily(0, 'Cloclo prends ta pilule !', 'Il faut que tu prennes ta pillule', hour, minute);
-//                      });
-//                    },
-//                  ),
-//                  TextButton(
-//                    child: Text('Notify'),
-//                    style: buttonTextStyle,
-//                    onPressed: () {
-//                      notificationManager.showNotification(0, 'Cloclo prends ta pilule', 'Il faut que tu prennes ta pillule');
-//                    },
-//                  ),
-//                ],
-//              )
-//            ],
-//          )
-//        ],
-//      ),
-//    );
-//  }
+  String getNotificationTitle() {
+    return '${name ?? prefs?.getString('Name') ?? 'Cloclo'} prends ta pilule !';
+  }
+
+  String getNotificationBody() {
+    return 'Il faut que tu prennes ta pillule';
+  }
+
+  void scheduleDailyNotification(int hour, int minute) {
+    notificationManager.showNotificationDaily(0, getNotificationTitle(), getNotificationBody(), hour, minute);
+    setState(() {
+      notificationTime = '${timeFormatter.format(hour)}:${timeFormatter.format(minute)}';
+      prefs?.setString('NotificationTime', notificationTime);
+    });
+  }
+
+  void timePickerCallback(selectedTime) async {
+    if (selectedTime != null) {
+      int hour = selectedTime.hour;
+      int minute = selectedTime.minute;
+      scheduleDailyNotification(hour, minute);
+    }
+  }
 
   @override
   Widget build(context) {
     ButtonStyle buttonTextStyle = TextButton.styleFrom(
       enableFeedback: true,
+      padding: EdgeInsets.all(12),
+//      backgroundColor: Colors.white70,
+      elevation: 0,
       textStyle: TextStyle(
         fontSize: 20,
       ),
     );
 
+    TextStyle defaultStyle = TextStyle(color: Colors.grey, fontSize: 18.0);
+    TextStyle linkStyle = TextStyle(color: Colors.indigo[400]);
+
+    Widget _buildPopupDialog(BuildContext context) {
+      return new AlertDialog(
+        title: const Text('Parameter'),
+        content: new Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextField(
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Enter your name',
+              ),
+              controller: TextEditingController()..text = name ?? prefs?.getString('Name') ?? '',
+              onChanged: (value) {
+                if (value.isEmpty) {
+                  return 'Please enter a name';
+                }
+                setState(() {
+                  inputName = value;
+                });
+                return null;
+              },
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          new FlatButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            textColor: Theme.of(context).primaryColor,
+            child: const Text('Cancel'),
+          ),
+          new FlatButton(
+            onPressed: () {
+              prefs.setString('Name', inputName);
+              notificationManager.showNotificationDaily(0, '${name ?? prefs?.getString('Name') ?? 'Cloclo'} prends ta pilule !', 'Il faut que tu prennes ta pillule',
+                  int.parse(notificationTime.split(':')[0]), int.parse(notificationTime.split(':')[1]));
+              setState(() {
+                name = inputName;
+                inputName = null;
+              });
+              Navigator.of(context).pop();
+            },
+            textColor: Theme.of(context).primaryColor,
+            child: const Text('OK'),
+          ),
+        ],
+      );
+    }
+
     return FutureBuilder<String>(
-        future: getScheduledNotificationTime(),
+        future: getPreferences(),
         builder: (context, AsyncSnapshot<String> snapshot) {
           return Scaffold(
-            appBar: AppBar(title: Text(title)),
+            appBar: AppBar(
+              title: Text(widget.title),
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.settings_outlined),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) => _buildPopupDialog(context),
+                    );
+                  },
+                )
+              ],
+            ),
             body: Column(
               children: [
                 Column(
@@ -119,13 +167,16 @@ class HomePage extends StatelessWidget {
                   children: [
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(32.0),
+                        padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Cloclo prends ta pilule ! ',
-                              style: TextStyle(fontSize: 30),
+                            FittedBox(
+                              fit: BoxFit.fitWidth,
+                              child: Text(
+                                getNotificationTitle(),
+                                style: TextStyle(fontSize: 30),
+                              ),
                             ),
                             Align(
                               alignment: Alignment.centerRight,
@@ -133,13 +184,35 @@ class HomePage extends StatelessWidget {
                                 'Dodo',
                                 style: TextStyle(
                                   color: Colors.grey,
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w300,
                                 ),
                                 textAlign: TextAlign.end,
                                 textWidthBasis: TextWidthBasis.parent,
                               ),
-                            )
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: FittedBox(
+                                fit: BoxFit.fitWidth,
+                                child: RichText(
+                                  text: TextSpan(style: defaultStyle, children: <TextSpan>[
+                                    TextSpan(text: 'Rappel tous les jours à '),
+                                    TextSpan(
+                                        text: notificationTime ?? prefs?.getString('NotificationTime') ?? 'unknown',
+                                        style: linkStyle,
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () {
+                                            showTimePicker(
+                                              initialTime: TimeOfDay(hour: 9, minute: 0),
+                                              context: context,
+                                              useRootNavigator: true,
+                                            ).then(timePickerCallback);
+                                          })
+                                  ]),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -152,15 +225,10 @@ class HomePage extends StatelessWidget {
                           style: buttonTextStyle,
                           onPressed: () {
                             showTimePicker(
-                              initialTime: TimeOfDay.now(),
+                              initialTime: TimeOfDay(hour: 9, minute: 0),
                               context: context,
-                            ).then((selectedTime) async {
-                              if (selectedTime != null) {
-                                int hour = selectedTime.hour;
-                                int minute = selectedTime.minute;
-                                notificationManager.showNotificationDaily(0, 'Cloclo prends ta pilule !', 'Il faut que tu prennes ta pillule', hour, minute);
-                              }
-                            });
+                              useRootNavigator: true,
+                            ).then(timePickerCallback);
                           },
                         ),
                         TextButton(
@@ -168,7 +236,7 @@ class HomePage extends StatelessWidget {
                           style: buttonTextStyle,
                           onPressed: () {
                             print('Notify');
-                            notificationManager.showNotification(0, 'Cloclo prends ta pilule', 'Il faut que tu prennes ta pillule');
+                            notificationManager.showNotification(0, getNotificationTitle(), getNotificationBody());
                           },
                         ),
                       ],

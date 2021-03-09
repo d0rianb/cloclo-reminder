@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info/package_info.dart';
 
 import './NotificationManager.dart';
 
@@ -42,14 +43,38 @@ class HomeState extends State<HomePage> {
   String name;
   String inputName;
   SharedPreferences prefs;
+  PackageInfo packageInfo = PackageInfo(
+    appName: 'Unknown',
+    packageName: 'Unknown',
+    version: 'Unknown',
+    buildNumber: 'Unknown',
+  );
 
-  Future<String> getPreferences() async {
+  @override
+  void initState() {
+    super.initState();
+    getPreferences();
+    getAppInfos();
+  }
+
+  Future<String> init() async {
+//    await getPreferences();
+    return '';
+  }
+
+  Future<void> getAppInfos() async {
+    final PackageInfo info = await PackageInfo.fromPlatform();
+    setState(() {
+      packageInfo = info;
+    });
+  }
+
+  Future<void> getPreferences() async {
     prefs = await SharedPreferences.getInstance();
     notificationTime = prefs.getString('NotificationTime');
     if (notificationTime == null) {
       scheduleDailyNotification(9, 0); // default at 9:00
     }
-    return '';
   }
 
   String getNotificationTitle() {
@@ -93,7 +118,7 @@ class HomeState extends State<HomePage> {
 
     Widget _buildPopupDialog(BuildContext context) {
       return new AlertDialog(
-        title: const Text('Paramètre'),
+        title: const Text('Paramètres'),
         content: new Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,109 +168,120 @@ class HomeState extends State<HomePage> {
     }
 
     return FutureBuilder<String>(
-        future: getPreferences(),
+        future: init(),
         builder: (context, AsyncSnapshot<String> snapshot) {
           return Scaffold(
-            appBar: AppBar(
-              title: Text(widget.title),
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.settings_outlined),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) => _buildPopupDialog(context),
-                    );
-                  },
-                )
-              ],
-            ),
-            body: Column(
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            FittedBox(
-                              fit: BoxFit.fitWidth,
-                              child: Text(
-                                getNotificationTitle(),
-                                style: TextStyle(fontSize: 30),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                'Dodo',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w300,
-                                ),
-                                textAlign: TextAlign.end,
-                                textWidthBasis: TextWidthBasis.parent,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: FittedBox(
+              appBar: AppBar(
+                title: Text(widget.title),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.settings_outlined),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) => _buildPopupDialog(context),
+                      );
+                    },
+                  )
+                ],
+              ),
+              body: Column(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FittedBox(
                                 fit: BoxFit.fitWidth,
-                                child: RichText(
-                                  text: TextSpan(style: defaultStyle, children: <TextSpan>[
-                                    TextSpan(text: 'Rappel tous les jours à '),
-                                    TextSpan(
-                                        text: notificationTime ?? prefs?.getString('NotificationTime') ?? 'unknown',
-                                        style: linkStyle,
-                                        recognizer: TapGestureRecognizer()
-                                          ..onTap = () {
-                                            showTimePicker(
-                                              initialTime: TimeOfDay(hour: 9, minute: 0),
-                                              context: context,
-                                              useRootNavigator: true,
-                                            ).then(timePickerCallback);
-                                          })
-                                  ]),
+                                child: Text(
+                                  getNotificationTitle(),
+                                  style: TextStyle(fontSize: 30),
                                 ),
                               ),
-                            ),
-                          ],
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  'Dodo',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                  textAlign: TextAlign.end,
+                                  textWidthBasis: TextWidthBasis.parent,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: FittedBox(
+                                  fit: BoxFit.fitWidth,
+                                  child: RichText(
+                                    text: TextSpan(style: defaultStyle, children: <TextSpan>[
+                                      TextSpan(text: 'Rappel tous les jours à '),
+                                      TextSpan(
+                                          text: notificationTime ?? prefs?.getString('NotificationTime') ?? 'unknown',
+                                          style: linkStyle,
+                                          recognizer: TapGestureRecognizer()
+                                            ..onTap = () {
+                                              showTimePicker(
+                                                initialTime: TimeOfDay(hour: 9, minute: 0),
+                                                context: context,
+                                                useRootNavigator: true,
+                                              ).then(timePickerCallback);
+                                            })
+                                    ]),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            child: Text('Configure'),
+                            style: buttonTextStyle,
+                            onPressed: () {
+                              showTimePicker(
+                                initialTime: TimeOfDay(hour: 9, minute: 0),
+                                context: context,
+                                useRootNavigator: true,
+                              ).then(timePickerCallback);
+                            },
+                          ),
+                          TextButton(
+                            child: Text('Notify'),
+                            style: buttonTextStyle,
+                            onPressed: () {
+                              print('Notify');
+                              notificationManager.showNotification(0, getNotificationTitle(), getNotificationBody());
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              bottomNavigationBar: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      'Dorian&Co © ${packageInfo?.appName} -  v${packageInfo?.version}+${packageInfo.buildNumber}',
+                      style: TextStyle(color: Colors.grey[500]),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          child: Text('Configure'),
-                          style: buttonTextStyle,
-                          onPressed: () {
-                            showTimePicker(
-                              initialTime: TimeOfDay(hour: 9, minute: 0),
-                              context: context,
-                              useRootNavigator: true,
-                            ).then(timePickerCallback);
-                          },
-                        ),
-                        TextButton(
-                          child: Text('Notify'),
-                          style: buttonTextStyle,
-                          onPressed: () {
-                            print('Notify');
-                            notificationManager.showNotification(0, getNotificationTitle(), getNotificationBody());
-                          },
-                        ),
-                      ],
-                    )
-                  ],
-                )
-              ],
-            ),
-          );
+                  ),
+                ],
+              ));
         });
   }
 }

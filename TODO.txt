@@ -1,0 +1,6 @@
+Features :
+ - Checkbox if taken
+ - Version number in the footer
+
+ Issues :
+ - notification daily bug

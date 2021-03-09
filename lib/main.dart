@@ -1,15 +1,15 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/gestures.dart';
-
 import 'package:flutter/material.dart';
+
 import './NotificationManager.dart';
 
 void main() async {
-  runApp(MyApp());
+  runApp(App());
 }
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -93,7 +93,7 @@ class HomeState extends State<HomePage> {
 
     Widget _buildPopupDialog(BuildContext context) {
       return new AlertDialog(
-        title: const Text('Parameter'),
+        title: const Text('Paramètre'),
         content: new Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +113,7 @@ class HomeState extends State<HomePage> {
                 });
                 return null;
               },
-            ),
+            )
           ],
         ),
         actions: <Widget>[

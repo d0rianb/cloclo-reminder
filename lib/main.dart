@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info/package_info.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import './NotificationManager.dart';
 
@@ -42,6 +43,7 @@ class HomeState extends State<HomePage> {
   String notificationTime;
   String name;
   String inputName;
+  bool pillTaken = false;
   SharedPreferences prefs;
   PackageInfo packageInfo = PackageInfo(
     appName: 'Unknown',
@@ -55,10 +57,17 @@ class HomeState extends State<HomePage> {
     super.initState();
     getPreferences();
     getAppInfos();
+    notificationManager.registerNotificationCallback(() {
+      setState(() {
+        pillTaken = true;
+        prefs?.setBool('PillTaken', true);
+        prefs?.setString('PillTakenAt', DateTime.now().toString());
+        toastAlert('All good');
+      });
+    });
   }
 
   Future<String> init() async {
-//    await getPreferences();
     return '';
   }
 
@@ -72,9 +81,25 @@ class HomeState extends State<HomePage> {
   Future<void> getPreferences() async {
     prefs = await SharedPreferences.getInstance();
     notificationTime = prefs.getString('NotificationTime');
+    setState(() {
+      pillTaken = prefs.getBool('PillTaken') ?? false;
+      var pillTakenAt = prefs.getString('PillTakenAt');
+      if (pillTaken && pillTakenAt != null) {
+        pillTaken = DateTime.parse(pillTakenAt).day == DateTime.now().day;
+      }
+    });
     if (notificationTime == null) {
       scheduleDailyNotification(9, 0); // default at 9:00
     }
+  }
+
+  void toastAlert(String msg) {
+    Fluttertoast.showToast(
+      msg: msg,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      timeInSecForIosWeb: 1,
+    );
   }
 
   String getNotificationTitle() {
@@ -98,6 +123,7 @@ class HomeState extends State<HomePage> {
       int hour = selectedTime.hour;
       int minute = selectedTime.minute;
       scheduleDailyNotification(hour, minute);
+      toastAlert('La notification a bien été planifié pour ${timeFormatter.format(hour)}:${timeFormatter.format(minute)}');
     }
   }
 
@@ -187,87 +213,103 @@ class HomeState extends State<HomePage> {
               ),
               body: Column(
                 children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              FittedBox(
-                                fit: BoxFit.fitWidth,
-                                child: Text(
-                                  getNotificationTitle(),
-                                  style: TextStyle(fontSize: 30),
-                                ),
-                              ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  'Dodo',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w300,
-                                  ),
-                                  textAlign: TextAlign.end,
-                                  textWidthBasis: TextWidthBasis.parent,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: FittedBox(
-                                  fit: BoxFit.fitWidth,
-                                  child: RichText(
-                                    text: TextSpan(style: defaultStyle, children: <TextSpan>[
-                                      TextSpan(text: 'Rappel tous les jours à '),
-                                      TextSpan(
-                                          text: notificationTime ?? prefs?.getString('NotificationTime') ?? 'unknown',
-                                          style: linkStyle,
-                                          recognizer: TapGestureRecognizer()
-                                            ..onTap = () {
-                                              showTimePicker(
-                                                initialTime: TimeOfDay(hour: 9, minute: 0),
-                                                context: context,
-                                                useRootNavigator: true,
-                                              ).then(timePickerCallback);
-                                            })
-                                    ]),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Row(
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton(
-                            child: Text('Configure'),
-                            style: buttonTextStyle,
-                            onPressed: () {
-                              showTimePicker(
-                                initialTime: TimeOfDay(hour: 9, minute: 0),
-                                context: context,
-                                useRootNavigator: true,
-                              ).then(timePickerCallback);
-                            },
+                          FittedBox(
+                            fit: BoxFit.fitWidth,
+                            child: Text(
+                              pillTaken ? 'C\'est bon pour aujourd\'hui 😊' : getNotificationTitle(),
+                              style: TextStyle(fontSize: 30),
+                            ),
                           ),
-                          TextButton(
-                            child: Text('Notify'),
-                            style: buttonTextStyle,
-                            onPressed: () {
-                              print('Notify');
-                              notificationManager.showNotification(0, getNotificationTitle(), getNotificationBody());
-                            },
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              'Dodo',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w300,
+                              ),
+                              textAlign: TextAlign.end,
+                              textWidthBasis: TextWidthBasis.parent,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+                            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                              Checkbox(
+                                  value: pillTaken,
+                                  activeColor: Colors.green[600],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      setState(() {
+                                        pillTaken = value;
+                                        prefs.setBool('PillTaken', value);
+                                        prefs.setString('PillTakenAt', DateTime.now().toString());
+                                      });
+                                    });
+                                  }),
+                              Text(
+                                'J\'ai bien pris ma pillule',
+                                style: TextStyle(fontSize: 20, color: pillTaken ? Colors.green[600] : Colors.grey[800]),
+                              )
+                            ]),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: FittedBox(
+                              fit: BoxFit.fitWidth,
+                              child: RichText(
+                                text: TextSpan(style: defaultStyle, children: <TextSpan>[
+                                  TextSpan(text: 'Rappel tous les jours à '),
+                                  TextSpan(
+                                      text: notificationTime ?? prefs?.getString('NotificationTime') ?? 'unknown',
+                                      style: linkStyle,
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          showTimePicker(
+                                            initialTime: TimeOfDay(hour: 9, minute: 0),
+                                            context: context,
+                                            useRootNavigator: true,
+                                          ).then(timePickerCallback);
+                                        })
+                                ]),
+                              ),
+                            ),
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        child: Text('Configure'),
+                        style: buttonTextStyle,
+                        onPressed: () {
+                          showTimePicker(
+                            initialTime: TimeOfDay(hour: 9, minute: 0),
+                            context: context,
+                            useRootNavigator: true,
+                          ).then(timePickerCallback);
+                        },
+                      ),
+                      TextButton(
+                        child: Text('Notify'),
+                        style: buttonTextStyle,
+                        onPressed: () {
+                          print('Notify');
+                          notificationManager.showNotification(0, getNotificationTitle(), getNotificationBody());
+                        },
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
               bottomNavigationBar: Row(

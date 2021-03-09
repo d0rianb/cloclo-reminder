@@ -1,6 +1,6 @@
 Features :
  - Checkbox if taken
- - Version number in the footer
+ - Version number in the footer     - X
 
  Issues :
- - notification daily bug
+ - notification daily bug           - ~

@@ -1,5 +1,5 @@
 Features :
- - Checkbox if taken
+ - Checkbox if taken                - X
  - Version number in the footer     - X
 
  Issues :

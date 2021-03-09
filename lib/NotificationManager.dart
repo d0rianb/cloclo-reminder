@@ -1,10 +1,5 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_native_timezone/flutter_native_timezone.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:ui' as ui;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -61,7 +56,6 @@ class NotificationManager {
     if (notificationClickCallback != null) {
       notificationClickCallback();
     }
-    print('Pill has been taken');
     return Future.value(0);
   }
 

@@ -97,7 +97,7 @@ class HomeState extends State<HomePage> {
     Fluttertoast.showToast(
       msg: msg,
       toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
+      gravity: ToastGravity.SNACKBAR,
       timeInSecForIosWeb: 1,
     );
   }
@@ -241,24 +241,23 @@ class HomeState extends State<HomePage> {
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
-                            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                              Checkbox(
-                                  value: pillTaken,
-                                  activeColor: Colors.green[600],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      setState(() {
-                                        pillTaken = value;
-                                        prefs.setBool('PillTaken', value);
-                                        prefs.setString('PillTakenAt', DateTime.now().toString());
-                                      });
-                                    });
-                                  }),
-                              Text(
-                                'J\'ai bien pris ma pillule',
-                                style: TextStyle(fontSize: 20, color: pillTaken ? Colors.green[600] : Colors.grey[800]),
-                              )
-                            ]),
+                            child: CheckboxListTile(
+                                title: Text(
+                                  'J\'ai bien pris ma pillule',
+                                  style: TextStyle(fontSize: 20, color: pillTaken ? Colors.green[600] : Colors.grey[800]),
+                                  textAlign: TextAlign.left,
+                                ),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.all(0),
+                                value: pillTaken,
+                                activeColor: Colors.green[600],
+                                onChanged: (value) {
+                                  setState(() {
+                                    pillTaken = value;
+                                    prefs.setBool('PillTaken', value);
+                                    prefs.setString('PillTakenAt', DateTime.now().toString());
+                                  });
+                                }),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),

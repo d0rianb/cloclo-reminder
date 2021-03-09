@@ -43,6 +43,8 @@ android {
         targetSdkVersion 29
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        setProperty("archivesBaseName", "cloclo-reminder" + "-v" + flutterVersionCode)
+
     }
 
     buildTypes {

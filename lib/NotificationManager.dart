@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_native_timezone/flutter_native_timezone.dart';
+import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -37,15 +38,35 @@ class NotificationManager {
   void showNotificationDaily(int id, String title, String body, int hour, int minute) async {
     final DateTime now = DateTime.now();
     final String currentTimeZone = await FlutterNativeTimezone.getLocalTimezone();
-    final tz.TZDateTime tzDateTime = new tz.TZDateTime.from(DateTime(now.year, now.month, now.day, hour, minute, 0), tz.getLocation(currentTimeZone));
+    DateTime nextAlert;
+    if (hour >= now.hour && minute >= now.minute) {
+      nextAlert = DateTime(now.year, now.month, now.day, hour, minute, 0);
+    } else {
+      nextAlert = DateTime(now.year, now.month, now.day + 1, hour, minute, 0);
+    }
+    final tz.TZDateTime tzDateTime = new tz.TZDateTime.from(nextAlert, tz.getLocation(currentTimeZone));
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(0, title, body, tzDateTime, getPlatformChannelSpecfics(),
+    await flutterLocalNotificationsPlugin.zonedSchedule(id, title, body, tzDateTime, getPlatformChannelSpecfics(),
         androidAllowWhileIdle: true, uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, matchDateTimeComponents: DateTimeComponents.time);
     print('Notification succesfully scheduled at $hour:$minute');
   }
 
+  void scheduleDailyNotification(int id, String title, String body, int hour, int minute) {
+    Duration duration = new Duration(days: 1);
+    const int alarmId = 0;
+    DateTime nextAlert;
+    final DateTime now = DateTime.now();
+    if (hour >= now.hour && minute >= now.minute) {
+      nextAlert = DateTime(now.year, now.month, now.day, hour, minute, 0);
+    } else {
+      nextAlert = DateTime(now.year, now.month, now.day + 1, hour, minute, 0);
+    }
+    AndroidAlarmManager.oneShotAt(nextAlert, alarmId + 1, () => AndroidAlarmManager.periodic(duration, alarmId, () => showNotification(id, title, body)));
+  }
+
   NotificationDetails getPlatformChannelSpecfics() {
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails('id', 'name', 'description', importance: Importance.max, priority: Priority.high, ticker: 'Cloclo\'s Reminder');
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails('pillReminderID', 'Reminder notifications', 'Pill Reminder notifications',
+        importance: Importance.max, priority: Priority.high, ticker: 'Cloclo\'s Reminder', icon: 'app_icon');
     var iOSPlatformChannelSpecifics = IOSNotificationDetails();
     var platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics, iOS: iOSPlatformChannelSpecifics);
 
@@ -64,6 +85,7 @@ class NotificationManager {
   }
 
   Future onDidReceiveLocalNotification(int id, String title, String body, String payload) async {
+    print('notification received');
     return Future.value(1);
   }
 

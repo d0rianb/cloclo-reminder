@@ -1,6 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_native_timezone/flutter_native_timezone.dart';
-import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -35,33 +34,25 @@ class NotificationManager {
     await flutterLocalNotificationsPlugin.show(id, title, body, getPlatformChannelSpecfics(), payload: 'none');
   }
 
-  void showNotificationDaily(int id, String title, String body, int hour, int minute) async {
+  DateTime getNextDateTime(int hour, int minute) {
     final DateTime now = DateTime.now();
-    final String currentTimeZone = await FlutterNativeTimezone.getLocalTimezone();
-    DateTime nextAlert;
+    DateTime dt;
     if (hour >= now.hour && minute >= now.minute) {
-      nextAlert = DateTime(now.year, now.month, now.day, hour, minute, 0);
+      dt = DateTime(now.year, now.month, now.day, hour, minute, 0);
     } else {
-      nextAlert = DateTime(now.year, now.month, now.day + 1, hour, minute, 0);
+      dt = DateTime(now.year, now.month, now.day + 1, hour, minute, 0);
     }
-    final tz.TZDateTime tzDateTime = new tz.TZDateTime.from(nextAlert, tz.getLocation(currentTimeZone));
+    return dt;
+  }
+
+  void showNotificationDaily(int id, String title, String body, int hour, int minute) async {
+    final String currentTimeZone = await FlutterNativeTimezone.getLocalTimezone();
+    final DateTime nextAlertDateTime = getNextDateTime(hour, minute);
+    final tz.TZDateTime tzDateTime = new tz.TZDateTime.from(nextAlertDateTime, tz.getLocation(currentTimeZone));
 
     await flutterLocalNotificationsPlugin.zonedSchedule(id, title, body, tzDateTime, getPlatformChannelSpecfics(),
         androidAllowWhileIdle: true, uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, matchDateTimeComponents: DateTimeComponents.time);
     print('Notification succesfully scheduled at $hour:$minute');
-  }
-
-  void scheduleDailyNotification(int id, String title, String body, int hour, int minute) {
-    Duration duration = new Duration(days: 1);
-    const int alarmId = 0;
-    DateTime nextAlert;
-    final DateTime now = DateTime.now();
-    if (hour >= now.hour && minute >= now.minute) {
-      nextAlert = DateTime(now.year, now.month, now.day, hour, minute, 0);
-    } else {
-      nextAlert = DateTime(now.year, now.month, now.day + 1, hour, minute, 0);
-    }
-    AndroidAlarmManager.oneShotAt(nextAlert, alarmId + 1, () => AndroidAlarmManager.periodic(duration, alarmId, () => showNotification(id, title, body)));
   }
 
   NotificationDetails getPlatformChannelSpecfics() {

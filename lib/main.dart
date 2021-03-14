@@ -1,16 +1,13 @@
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info/package_info.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:android_alarm_manager/android_alarm_manager.dart';
 
 import './NotificationManager.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await AndroidAlarmManager.initialize();
+void main() {
   runApp(App());
 }
 

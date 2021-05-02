@@ -44,6 +44,7 @@ class HomeState extends State<HomePage> {
   String name;
   String inputName;
   bool pillTaken = false;
+  bool notificationActive = true;
   SharedPreferences prefs;
   PackageInfo packageInfo = PackageInfo(
     appName: 'Unknown',
@@ -51,6 +52,10 @@ class HomeState extends State<HomePage> {
     version: 'Unknown',
     buildNumber: 'Unknown',
   );
+
+  // default at 09:00
+  static const int defaultHour = 09;
+  static const int defaultMinute = 00;
 
   @override
   void initState() {
@@ -83,13 +88,17 @@ class HomeState extends State<HomePage> {
     notificationTime = prefs.getString('NotificationTime');
     setState(() {
       pillTaken = prefs.getBool('PillTaken') ?? false;
+      notificationActive = prefs.getBool('NotificationActive') ?? true;
       var pillTakenAt = prefs.getString('PillTakenAt');
       if (pillTaken && pillTakenAt != null) {
         pillTaken = DateTime.parse(pillTakenAt).day == DateTime.now().day;
       }
     });
-    if (notificationTime == null) {
-      scheduleDailyNotification(9, 0); // default at 9:00
+    if (notificationTime == null && notificationActive) {
+      scheduleDailyNotification(defaultHour, defaultMinute);
+    }
+    if (prefs.getBool('NotificationActive') == null) {
+      prefs.setBool('NotificationActive', true);
     }
   }
 
@@ -127,6 +136,81 @@ class HomeState extends State<HomePage> {
     }
   }
 
+  Widget _buildPopupDialog(BuildContext context) {
+    return new AlertDialog(
+      title: const Text('Paramètres'),
+      content: new Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          TextField(
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              hintText: 'Enter your name',
+            ),
+            controller: TextEditingController()..text = name ?? prefs?.getString('Name') ?? '',
+            onChanged: (value) {
+              if (value.isEmpty) {
+                return 'Please enter a name';
+              }
+              setState(() {
+                inputName = value.trim();
+              });
+              return null;
+            },
+          ),
+          CheckboxListTile(
+              title: Text(
+                'Activer les notifications',
+                textAlign: TextAlign.left,
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.all(0.0),
+              value: notificationActive,
+              onChanged: (value) {
+                setState(() {
+                  notificationActive = value;
+                  prefs.setBool('NotificationActive', value);
+//                  if (!notificationActive) {
+//                    notificationManager.removeReminder(0);
+//                  } else {
+//                    if (notificationTime != null) {
+//                      scheduleDailyNotification(int.parse(notificationTime.split(':')[0]), int.parse(notificationTime.split(':')[1]));
+//                    } else {
+//                      scheduleDailyNotification(defaultHour, defaultMinute);
+//                    }
+//                  }
+                });
+              })
+        ],
+      ),
+      actions: <Widget>[
+        new FlatButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          textColor: Theme.of(context).primaryColor,
+          child: const Text('Cancel'),
+        ),
+        new FlatButton(
+          onPressed: () {
+            prefs.setString('Name', inputName);
+            notificationManager.showNotificationDaily(0, '${name ?? prefs?.getString('Name') ?? 'Cloclo'} prends ta pilule !', 'Il faut que tu prennes ta pillule',
+                int.parse(notificationTime.split(':')[0]), int.parse(notificationTime.split(':')[1]));
+            setState(() {
+              name = inputName;
+              inputName = null;
+            });
+            Navigator.of(context).pop();
+          },
+          textColor: Theme.of(context).primaryColor,
+          child: const Text('OK'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(context) {
     ButtonStyle buttonTextStyle = TextButton.styleFrom(
@@ -141,58 +225,6 @@ class HomeState extends State<HomePage> {
 
     TextStyle defaultStyle = TextStyle(color: Colors.grey, fontSize: 18.0);
     TextStyle linkStyle = TextStyle(color: Colors.indigo[400]);
-
-    Widget _buildPopupDialog(BuildContext context) {
-      return new AlertDialog(
-        title: const Text('Paramètres'),
-        content: new Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            TextField(
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'Enter your name',
-              ),
-              controller: TextEditingController()..text = name ?? prefs?.getString('Name') ?? '',
-              onChanged: (value) {
-                if (value.isEmpty) {
-                  return 'Please enter a name';
-                }
-                setState(() {
-                  inputName = value;
-                });
-                return null;
-              },
-            )
-          ],
-        ),
-        actions: <Widget>[
-          new FlatButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            textColor: Theme.of(context).primaryColor,
-            child: const Text('Cancel'),
-          ),
-          new FlatButton(
-            onPressed: () {
-              prefs.setString('Name', inputName);
-              notificationManager.showNotificationDaily(0, '${name ?? prefs?.getString('Name') ?? 'Cloclo'} prends ta pilule !', 'Il faut que tu prennes ta pillule',
-                  int.parse(notificationTime.split(':')[0]), int.parse(notificationTime.split(':')[1]));
-              setState(() {
-                name = inputName;
-                inputName = null;
-              });
-              Navigator.of(context).pop();
-            },
-            textColor: Theme.of(context).primaryColor,
-            child: const Text('OK'),
-          ),
-        ],
-      );
-    }
 
     return FutureBuilder<String>(
         future: init(),

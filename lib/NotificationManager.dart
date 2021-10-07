@@ -56,26 +56,25 @@ class NotificationManager {
   }
 
   NotificationDetails getPlatformChannelSpecfics() {
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails('pillReminderID', 'Reminder notifications', 'Pill Reminder notifications',
-        importance: Importance.max, priority: Priority.high, ticker: 'Cloclo\'s Reminder', icon: 'app_icon');
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails('pillReminderID', 'Reminder notifications', channelDescription: 'Pill Reminder notifications',
+        importance: Importance.max, priority: Priority.high, ticker: 'Cloclo\'s Reminder', icon: 'app_icon',);
     var iOSPlatformChannelSpecifics = IOSNotificationDetails();
     var platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics, iOS: iOSPlatformChannelSpecifics);
 
     return platformChannelSpecifics;
   }
 
-  Future onSelectNotification(String payload) async {
+  void onSelectNotification(String? payload) async {
     if (notificationClickCallback != null) {
       notificationClickCallback();
     }
-    return Future.value(0);
   }
 
   void registerNotificationCallback(Function callback) {
     notificationClickCallback = callback;
   }
 
-  Future onDidReceiveLocalNotification(int id, String title, String body, String payload) async {
+  Future onDidReceiveLocalNotification(int id, String? title, String? body, String? payload) async {
     print('notification received');
     return Future.value(1);
   }

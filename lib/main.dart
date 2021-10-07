@@ -16,7 +16,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cloclo\'s reminder',
-      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child),
+      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child!),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -31,7 +31,7 @@ class App extends StatelessWidget {
 class HomePage extends StatefulWidget {
   final String title;
 
-  const HomePage({Key key, this.title}) : super(key: key);
+  const HomePage({Key? key, required this.title}) : super(key: key);
 
   HomeState createState() => HomeState();
 }
@@ -40,12 +40,12 @@ class HomeState extends State<HomePage> {
   final NotificationManager notificationManager = new NotificationManager();
   final NumberFormat timeFormatter = new NumberFormat('00');
   // ignore: non_constant_identifier_names
-  String notificationTime;
-  String name;
-  String inputName;
+  String? notificationTime;
+  String? name;
+  String? inputName;
   bool pillTaken = false;
   bool notificationActive = true;
-  SharedPreferences prefs;
+  SharedPreferences? prefs;
   PackageInfo packageInfo = PackageInfo(
     appName: 'Unknown',
     packageName: 'Unknown',
@@ -85,11 +85,11 @@ class HomeState extends State<HomePage> {
 
   Future<void> getPreferences() async {
     prefs = await SharedPreferences.getInstance();
-    notificationTime = prefs.getString('NotificationTime');
+    notificationTime = prefs!.getString('NotificationTime');
     setState(() {
-      pillTaken = prefs.getBool('PillTaken') ?? false;
-      notificationActive = prefs.getBool('NotificationActive') ?? true;
-      var pillTakenAt = prefs.getString('PillTakenAt');
+      pillTaken = prefs!.getBool('PillTaken') ?? false;
+      notificationActive = prefs!.getBool('NotificationActive') ?? true;
+      var pillTakenAt = prefs!.getString('PillTakenAt');
       if (pillTaken && pillTakenAt != null) {
         pillTaken = DateTime.parse(pillTakenAt).day == DateTime.now().day;
       }
@@ -97,8 +97,8 @@ class HomeState extends State<HomePage> {
     if (notificationTime == null && notificationActive) {
       scheduleDailyNotification(defaultHour, defaultMinute);
     }
-    if (prefs.getBool('NotificationActive') == null) {
-      prefs.setBool('NotificationActive', true);
+    if (prefs!.getBool('NotificationActive') == null) {
+      prefs!.setBool('NotificationActive', true);
     }
   }
 
@@ -123,7 +123,7 @@ class HomeState extends State<HomePage> {
     notificationManager.showNotificationDaily(0, getNotificationTitle(), getNotificationBody(), hour, minute);
     setState(() {
       notificationTime = '${timeFormatter.format(hour)}:${timeFormatter.format(minute)}';
-      prefs?.setString('NotificationTime', notificationTime);
+      prefs?.setString('NotificationTime', notificationTime!);
     });
   }
 
@@ -152,7 +152,7 @@ class HomeState extends State<HomePage> {
             controller: TextEditingController()..text = name ?? prefs?.getString('Name') ?? '',
             onChanged: (value) {
               if (value.isEmpty) {
-                return 'Please enter a name';
+                return; // 'Please enter a name';
               }
               setState(() {
                 inputName = value.trim();
@@ -170,8 +170,8 @@ class HomeState extends State<HomePage> {
               value: notificationActive,
               onChanged: (value) {
                 setState(() {
-                  notificationActive = value;
-                  prefs.setBool('NotificationActive', value);
+                  notificationActive = value!;
+                  prefs?.setBool('NotificationActive', value);
 //                  if (!notificationActive) {
 //                    notificationManager.removeReminder(0);
 //                  } else {
@@ -195,9 +195,9 @@ class HomeState extends State<HomePage> {
         ),
         new FlatButton(
           onPressed: () {
-            prefs.setString('Name', inputName);
+            prefs?.setString('Name', inputName ?? '');
             notificationManager.showNotificationDaily(0, '${name ?? prefs?.getString('Name') ?? 'Cloclo'} prends ta pilule !', 'Il faut que tu prennes ta pillule',
-                int.parse(notificationTime.split(':')[0]), int.parse(notificationTime.split(':')[1]));
+                int.parse(notificationTime!.split(':')[0]), int.parse(notificationTime!.split(':')[1]));
             setState(() {
               name = inputName;
               inputName = null;
@@ -286,9 +286,9 @@ class HomeState extends State<HomePage> {
                                 activeColor: Colors.green[600],
                                 onChanged: (value) {
                                   setState(() {
-                                    pillTaken = value;
-                                    prefs.setBool('PillTaken', value);
-                                    prefs.setString('PillTakenAt', DateTime.now().toString());
+                                    pillTaken = value!;
+                                    prefs?.setBool('PillTaken', value);
+                                    prefs?.setString('PillTakenAt', DateTime.now().toString());
                                   });
                                 }),
                           ),
@@ -350,7 +350,7 @@ class HomeState extends State<HomePage> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
-                      'Dorian&Co © ${packageInfo?.appName} -  v${packageInfo?.version}',
+                      'Dorian&Co © ${packageInfo.appName} -  v${packageInfo.version}',
                       style: TextStyle(color: Colors.grey[500]),
                     ),
                   ),
